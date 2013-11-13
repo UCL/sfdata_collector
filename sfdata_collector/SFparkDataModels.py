@@ -55,8 +55,6 @@ class SFparkRecord(Base):
 	lon1  NUMERIC(14,10),                      # Longitude point 1 for this location (specified for all sites)
 	lat2  NUMERIC(14,10),                      # Latitude point 2 for this location (specified only if PTS is 2)
 	lon2  NUMERIC(14,10),                      # Longitude point 2 for this location (specified only if PTS is 2)
-	current_rate NUMERIC(8,2),                 # Instantaneous parking rate corresponding to the AVAILABILITY_UPDATED_TIMESTAMP
-	current_rq CHAR(16),                       # Instantaneous rate qualifier for this rate schedule e.g. PerHr
 	occ   INTEGER,                             # Number of spaces currently occupied  
 	oper  INTEGER                              # Number of spaces currently operational for this location
     );
@@ -105,13 +103,7 @@ class SFparkRecord(Base):
 	
     # Longitude point 2 for this location (specified only if PTS is 2)
     lon2  = Column(Float)             
-	
-    # Instantaneous parking rate corresponding to the AVAILABILITY_UPDATED_TIMESTAMP
-    current_rate = Column(Float)                 
-	
-    # Instantaneous rate qualifier for this rate schedule e.g. PerHr
-    current_rq = Column(String(16))                     
-	
+		
     # Number of spaces currently occupied 
     occ   = Column(Integer)               
 	
@@ -171,10 +163,6 @@ class SFparkRecord(Base):
                 for ophrs_json in json["OPHRS"]["OPS"]:
                     ophr = SFparkOphrsRecord(ophrs_json)
                     self.ophrs.append(ophr)
-                                                    
-        #TODO figure out which period the TIMESTAMP is in
-        if "RATES" in json: self.current_rate = 0                
-        if "RATES" in json: self.current_rq   = ""              
         
 
 class SFparkRatesRecord(Base):
