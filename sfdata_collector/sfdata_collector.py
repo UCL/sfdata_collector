@@ -21,10 +21,14 @@ import datetime
 import time
 import requests
 
+from sets import Set
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from SFparkDataModels import Base, SFparkRecord
+from SFparkDataModels import (Base, SFparkLocationRecord, 
+                                 SFparkAvailabilityRecord, SFparkRatesRecord, 
+                                 SFparkOphrsRecord)
 
 USAGE = r"""
 
@@ -38,6 +42,12 @@ USAGE = r"""
 
 """
  
+# these globals are for tracking what we've stored previously to prevent
+# keeping too many copies of the same data
+storedLocations = Set()
+lastDate = 0
+
+
 def collectSFparkData(session):
     """
     Makes a request to the SFpark server to get current parking availability,
@@ -46,8 +56,7 @@ def collectSFparkData(session):
     For information on the SFPark API, please see:     
     http://sfpark.org/resources/sfpark-availability-service-api-reference/
     
-    A corresponding MySQL database should exist and contain tables as 
-    specified in SFparkRecord.py, SFparkRatesRecord.py, SFparkOphrsRecord.py.
+    For stored data structure, see SFparkDataModels.py
     """
     
     # request data from the server
@@ -68,11 +77,51 @@ def collectSFparkData(session):
         # timestamp at top level
         string_time = data["AVAILABILITY_UPDATED_TIMESTAMP"].split('.')
         updated_time = datetime.datetime.strptime(string_time[0], "%Y-%m-%dT%H:%M:%S")
-    	
-    	# all other attributes for each availability record
-        for avl in data["AVL"]:            
-            avl_record = SFparkRecord(updated_time, avl)            
-            session.add(avl_record)
+        date_id = 10000*updated_time.year + 100*updated_time.month + updated_time.day
+    	    	
+        global lastDate
+        if date_id != lastDate:
+            lastDate = date_id
+
+            for avl in data["AVL"]: 
+                
+                # id is a combination of opsid and bfid
+                if avl["TYPE"]=="OFF": 
+                    loc_id = int(avl["OSPID"])
+                else:
+                    loc_id = int(avl["BFID"])
+
+                # location gets added once 
+                if loc_id not in storedLocations:
+                    loc_record = SFparkLocationRecord(loc_id, avl)
+                    session.add(loc_record)
+                    storedLocations.add(loc_id)
+                
+                # update rates and operating hours once per day
+                if "RATES" in avl:
+                    if isinstance(avl["RATES"]["RS"], list):
+                        for rates_json in avl["RATES"]["RS"]:
+                            rates_record = SFparkRatesRecord(loc_id, date_id, rates_json)
+                            session.add(rates_record)
+        
+                if "OPHRS" in avl:
+                    if isinstance(avl["OPHRS"]["OPS"], list):
+                        for ophrs_json in avl["OPHRS"]["OPS"]:
+                            ophrs_record = SFparkOphrsRecord(loc_id, date_id, ophrs_json)
+                            session.add(ophrs_record)
+                
+
+    	# update availability every time
+        for avl in data["AVL"]: 
+            # id is a combination of opsid and bfid
+            if avl["TYPE"]=="OFF": 
+                loc_id = int(avl["OSPID"])
+            else:
+                loc_id = int(avl["BFID"])
+
+            avl_record = SFparkAvailabilityRecord(loc_id, date_id, updated_time, avl)            
+            session.add(avl_record)            
+
 
     else:
         print data["ERROR_CODE"] + " " + data["MESSAGE"]
@@ -100,6 +149,6 @@ if __name__ == "__main__":
     for i in range(0,2):
         print "iteration %i" % i
         collectSFparkData(session)
-        time.sleep(6)
+        time.sleep(20)
 
     session.close()
