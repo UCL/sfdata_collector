@@ -19,9 +19,11 @@ __license__     = """
 import sys
 import datetime
 import time
-import requests
+import thread
 
 from sets import Set
+
+import requests
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -40,12 +42,21 @@ USAGE = r"""
  This script collects real time data from a range of different sources, 
  and stores the resulting data in a database.  
 
+ Press Enter to quit. 
 """
  
 # these globals are for tracking what we've stored previously to prevent
 # keeping too many copies of the same data
 storedLocations = Set()
 lastDate = 0
+
+def initializeSFparkData(session):
+    """
+    Figure out which locations have already been written to the database
+    so we don't do it again.
+    """
+    for rec in session.query(SFparkLocationRecord):
+        storedLocations.add(rec.id)
 
 
 def collectSFparkData(session):
@@ -128,6 +139,14 @@ def collectSFparkData(session):
 
     session.commit()
         
+def input_thread(L):
+    """
+    Utility function that allows the program to continue until
+    the user hits enter. 
+    """
+    raw_input()
+    L.append(None)
+    
     
 if __name__ == "__main__":
     
@@ -145,10 +164,28 @@ if __name__ == "__main__":
     Session = sessionmaker(bind=engine)
     session = Session()
     
-    #while True:
-    for i in range(0,2):
-        print "iteration %i" % i
+    # track to make sure we don't overwrite stuff already in database
+    initializeSFparkData(session)
+    
+    # some threading stuff to check for user input
+    print "Press Enter to quit.  (Won't respond until end of wait period.)"
+    L=[]
+    thread.start_new_thread(input_thread, (L,))
+    
+    # the main loop
+    while True:
+        if L: break
+        
+        print "Working..."
+        startTime = datetime.datetime.now()        
         collectSFparkData(session)
-        time.sleep(20)
+        
+        print "  waiting."
+        elapsedTime = datetime.datetime.now() - startTime
+        if elapsedTime.total_seconds() < 60:
+            time.sleep(60 - elapsedTime.total_seconds())
+        
 
+    # always close the session
     session.close()
+    print "Thanks for collecting data.  Time for a pint!"
