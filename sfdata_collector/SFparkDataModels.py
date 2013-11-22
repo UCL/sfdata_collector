@@ -149,10 +149,10 @@ class SFparkAvailabilityRecord(Base):
     a table with the following definition: 
         
     CREATE TABLE sfpark_avl (
-	id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,  # Unique ID and primary index
+	id BIGSERIAL NOT NULL PRIMARY KEY,         # Unique ID and primary index
 	loc_id INT NOT NULL,                       # ID to link back to location table
 	date_id INT NOT NULL,                      # date ID in form YYYYMMDD
-	availability_updated_timestamp DATETIME,   # Returns the Timestamp of when the availability data response was updated for the request
+	availability_updated_timestamp TIMESTAMP,  # Returns the Timestamp of when the availability data response was updated for the request
 	occ   INTEGER,                             # Number of spaces currently occupied  
 	oper  INTEGER                              # Number of spaces currently operational for this location
     );
@@ -212,11 +212,11 @@ class SFparkRatesRecord(Base):
     a table with the following definition: 
         
     CREATE TABLE sfpark_rates (
-	id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,  # Unique ID and primary index in this table
+	id BIGSERIAL NOT NULL PRIMARY KEY,         # Unique ID and primary index in this table
 	loc_id INT NOT NULL,                       # ID to link back to location table
 	date_id INT NOT NULL,                      # date ID in form YYYYMMDD
-	beg       TIME,                            # Indicates the begin time for this rate schedule
-	end       TIME,                            # Indicates the end time for this rate schedule 
+	begtime   TIME,                            # Indicates the begin time for this rate schedule
+	endtime   TIME,                            # Indicates the end time for this rate schedule 
 	rate      NUMERIC(8,2),                    # Applicable rate for this rate schedule
 	descr     VARCHAR(255),                    # Used for descriptive rate information when not possible to specify using BEG or END times for this rate schedule
 	rq        CHAR(16),                        # Rate qualifier for this rate schedule e.g. PerHr
@@ -236,10 +236,10 @@ class SFparkRatesRecord(Base):
     date_id = Column(Integer)
         
     # Indicates the begin time for this rate schedule
-    beg = Column(Time)
+    begtime = Column(Time)
     
     # Indicates the end time for this rate schedule                            
-    end = Column(Time)
+    endtime = Column(Time)
     
     # Applicable rate for this rate schedule
     rate = Column(Float)
@@ -270,10 +270,10 @@ class SFparkRatesRecord(Base):
         self.date_id = date_id
         if "BEG"  in json:       
             t = datetime.datetime.strptime(json["BEG"], "%I:%M %p")
-            self.beg = t.time()
+            self.begtime = t.time()
         if "END"  in json: 
             t = datetime.datetime.strptime(json["END"], "%I:%M %p")
-            self.end = t.time()
+            self.endtime = t.time()
         if "RATE" in json: self.rate  = float(json["RATE"])
         if "DESC" in json: self.descr = json["DESC"]
         if "RQ"   in json: self.rq    = json["RQ"]
@@ -291,13 +291,13 @@ class SFparkOphrsRecord(Base):
     a table with the following definition: 
         
     CREATE TABLE sfpark_ophrs (
-	id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,  # Unique ID and primary index in this table
+	id BIGSERIAL NOT NULL PRIMARY KEY,         # Unique ID and primary index in this table
 	loc_id INT NOT NULL,                       # ID to link back to location table
 	date_id INT NOT NULL,                      # date ID in form YYYYMMDD
 	from_day  CHAR(16),                        # Start day for this schedule, e.g., Monday
 	to_day    CHAR(16),                        # End day for this schedule, e.g., Friday
-	beg       TIME,                            # Indicates the begin time for this schedule
-	end       TIME                             # Indicates the end time for this schedule 
+	begtime   TIME,                            # Indicates the begin time for this schedule
+	endtime   TIME                             # Indicates the end time for this schedule 
     ); 
     """
     
@@ -319,10 +319,10 @@ class SFparkOphrsRecord(Base):
     to_day = Column(String(16))
 
     # Indicates the begin time for this rate schedule
-    beg = Column(DateTime)
+    begtime = Column(DateTime)
     
     # Indicates the end time for this rate schedule                            
-    end = Column(DateTime)
+    endtime = Column(DateTime)
 
     def __init__(self, loc_id, date_id, json):
         """
@@ -346,9 +346,9 @@ class SFparkOphrsRecord(Base):
         if "TO"   in json: self.to_day   = json["TO"]
         if "BEG"  in json:       
             t = datetime.datetime.strptime(json["BEG"], "%I:%M %p")
-            self.beg = t.time()
+            self.begtime = t.time()
         if "END"  in json: 
             t = datetime.datetime.strptime(json["END"], "%I:%M %p")
-            self.end = t.time()
+            self.endtime = t.time()
                 
         

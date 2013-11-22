@@ -34,10 +34,12 @@ from SFparkDataModels import (Base, SFparkLocationRecord,
 
 USAGE = r"""
 
- python sfdata_collector.py username password
+ python sfdata_collector.py dbstring
  
- username - should be for mysql database existing on localhost
- password - should be for mysql database existing on lcoalhost
+ dbstring - in the form: dialect+driver://user:password@host/dbname[?key=value..]
+            see sqlalchemy documentation on create_engine() for options
+ 
+ i.e. 'postgresql://username:password@localhost/sfdata'
    
  This script collects real time data from a range of different sources, 
  and stores the resulting data in a database.  
@@ -151,15 +153,14 @@ def input_thread(L):
 if __name__ == "__main__":
     
     # specify username and password at command line
-    if len(sys.argv) <2:
+    if len(sys.argv) <1:
         print USAGE
         sys.exit(2)
-
-    username = sys.argv[1]
-    password = sys.argv[2]
+        
+    dbstring = sys.argv[1]
  
     # initialize the database connection
-    engine = create_engine('mysql://'+username+':'+password+'@localhost/sfdata')
+    engine = create_engine(dbstring)
     Base.metadata.create_all(engine)
     Session = sessionmaker(bind=engine)
     session = Session()
