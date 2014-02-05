@@ -36,6 +36,10 @@ USAGE = r"""
 
  python sfdata_collector.py dbstring
  
+    or (if working from .exe)
+ 
+ sfdata_collector.exe dbstring
+ 
  dbstring - in the form: dialect+driver://user:password@host/dbname[?key=value..]
             see sqlalchemy documentation on create_engine() for options
  
