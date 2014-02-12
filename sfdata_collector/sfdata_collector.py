@@ -82,9 +82,20 @@ def collectSFparkData(session):
                      'RESPONSE':'json',      # Return in JSON format
                      'TYPE':'all',           # Both on-street and off-street
                      'PRICING':'yes'}        # Include pricing information
-                     
-    r = requests.get('http://api.sfpark.org/sfpark/rest/availabilityservice', 
-                     params=sfpark_params)
+    
+    # if get a connection error, just wait and try again
+    requestSucceeded = False 
+    while (not requestSucceeded): 
+        try:               
+            r = requests.get('http://api.sfpark.org/sfpark/rest/availabilityservice', 
+                            params=sfpark_params)
+        except requests.exceptions.RequestException as e: 
+            print e
+            print "Caught exception connecting to server.  Try again in 1 minute..."
+            time.sleep(60)
+        else: 
+            requestSucceeded = True
+        
     
     data = r.json()
     
@@ -181,8 +192,8 @@ if __name__ == "__main__":
     while True:
         if L: break
         
-        print "Working..."
-        startTime = datetime.datetime.now()        
+        startTime = datetime.datetime.now()   
+        print "Working...", startTime     
         collectSFparkData(session)
         
         print "  waiting."
